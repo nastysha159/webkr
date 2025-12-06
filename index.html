@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Морской Бой</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            padding: 20px; 
+            color: #333;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            overflow: hidden; 
+        }
+        .header { 
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); 
+            color: white; 
+            padding: 25px; 
+            text-align: center; 
+            border-bottom: 3px solid #3498db;
+        }
+        .header h1 { 
+            font-size: 28px; 
+            margin-bottom: 10px; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .main-content { 
+            display: grid; 
+            grid-template-columns: 280px 1fr; 
+            min-height: 700px; 
+        }
+        .sidebar { 
+            background: #34495e; 
+            color: white; 
+            padding: 20px; 
+            border-right: 2px solid #2c3e50;
+        }
+        .sidebar h3 { 
+            color: #3498db; 
+            margin-bottom: 15px; 
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        .game-area { 
+            padding: 25px; 
+            background: #ecf0f1; 
+            min-height: 700px;
+        }
+        
+        /* Стили для комнат */
+        .rooms-list { 
+            margin-bottom: 25px; 
+        }
+        .room-item { 
+            background: #4a6278; 
+            margin: 10px 0; 
+            padding: 15px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+        }
+        .room-item:hover { 
+            background: #5a7288; 
+            transform: translateX(5px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+        }
+        .room-item.available { 
+            border-left-color: #2ecc71; 
+        }
+        .room-item.full { 
+            background: #7f8c8d; 
+            cursor: not-allowed;
+            border-left-color: #e74c3c;
+        }
+        .room-item.full:hover { 
+            background: #7f8c8d; 
+            transform: none;
+        }
+        .room-item.started { 
+            background: #e74c3c; 
+            cursor: not-allowed;
+        }
+        .room-item.started:hover { 
+            background: #e74c3c; 
+            transform: none;
+        }
+        .room-info { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-top: 5px; 
+            font-size: 14px;
+            color: #ecf0f1;
+        }
+        
+        /* Сетка для игры */
+        .boards-container { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 30px; 
+            margin-bottom: 30px; 
+        }
+        .board-section { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid #3498db;
+        }
+        .board-title { 
+            text-align: center; 
+            margin-bottom: 15px; 
+            font-weight: bold; 
+            color: #2c3e50; 
+            font-size: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        /* Сетка игрового поля */
+        .board { 
+            display: grid; 
+            grid-template-columns: repeat(10, 35px); 
+            grid-template-rows: repeat(10, 35px); 
+            gap: 2px; 
+            margin: 0 auto; 
+            background: #2980b9; 
+            padding: 5px; 
+            border-radius: 5px; 
+            border: 3px solid #2c3e50;
+        }
+        .cell { 
+            width: 35px; 
+            height: 35px; 
+            background: #3498db; 
+            border: 1px solid #2980b9; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 14px; 
+            font-weight: bold; 
+            transition: all 0.2s;
+            position: relative;
+        }
+        .cell:hover { 
+            background: #2980b9; 
+            transform: scale(1.05);
+        }
+        .cell.coordinates { 
+            background: transparent; 
+            border: none; 
+            font-weight: bold; 
+            color: white; 
+            cursor: default;
+        }
+        .cell.coordinates:hover { 
+            background: transparent; 
+            transform: none;
+        }
+        .cell.ship { 
+            background: #2c3e50; 
+            border-color: #34495e;
+        }
+        .cell.ship.placed { 
+            background: #34495e; 
+            opacity: 0.8;
+        }
+        .cell.hit { 
+            background: #e74c3c; 
+            color: white; 
+        }
+        .cell.hit::after { 
+            content: "✕"; 
+            font-size: 20px; 
+            color: white;
+        }
+        .cell.miss { 
+            background: #ecf0f1; 
+        }
+        .cell.miss::after { 
+            content: "•"; 
+            font-size: 20px; 
+            color: #7f8c8d;
+        }
+        .cell.ship.hit { 
+            background: #c0392b; 
+            border-color: #e74c3c;
+        }
+        
+        /* Панель управления */
+        .controls { 
+            text-align: center; 
+            margin: 25px 0; 
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        button { 
+            background: linear-gradient(to right, #3498db, #2980b9); 
+            color: white; 
+            border: none; 
+            padding: 12px 25px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 0 8px; 
+            font-size: 15px; 
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:hover { 
+            background: linear-gradient(to right, #2980b9, #3498db); 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
+        }
+        button:active { 
+            transform: translateY(0);
+        }
+        button:disabled { 
+            background: #bdc3c7; 
+            cursor: not-allowed; 
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* Чат */
+        .chat-container { 
+            background: white; 
+            border-radius: 10px; 
+            padding: 20px; 
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 1px solid #bdc3c7;
+        }
+        .chat-messages { 
+            height: 200px; 
+            border: 2px solid #3498db; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            overflow-y: auto; 
+            background: #f8f9fa;
+        }
+        .chat-input { 
+            display: flex; 
+            gap: 10px; 
+        }
+        .chat-input input { 
+            flex: 1; 
+            padding: 12px; 
+            border: 2px solid #3498db; 
+            border-radius: 5px; 
+            font-size: 14px;
+        }
+        .chat-input input:focus { 
+            outline: none; 
+            border-color: #2980b9;
+        }
+        
+        /* Статусы */
+        .status { 
+            text-align: center; 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            font-size: 16px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        .status.waiting { 
+            background: linear-gradient(135deg, #f39c12, #e67e22); 
+            color: white; 
+        }
+        .status.ready { 
+            background: linear-gradient(135deg, #27ae60, #2ecc71); 
+            color: white; 
+        }
+        .status.your-turn { 
+            background: linear-gradient(135deg, #2ecc71, #27ae60); 
+            color: white; 
+            animation: pulse 1.5s infinite;
+        }
+        .status.opponent-turn { 
+            background: linear-gradient(135deg, #e74c3c, #c0392b); 
+            color: white; 
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+        
+        /* Расстановка кораблей */
+        .ship-placing { 
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7); 
+            border: 2px solid #f39c12; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .ship-placing h3 { 
+            color: #d35400; 
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .ship-list { 
+            display: flex; 
+            gap: 15px; 
+            margin: 15px 0; 
+            flex-wrap: wrap; 
+            justify-content: center;
+        }
+        .ship-item { 
+            padding: 10px 20px; 
+            background: linear-gradient(135deg, #3498db, #2980b9); 
+            color: white; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+            min-width: 120px;
+            text-align: center;
+        }
+        .ship-item:hover { 
+            background: linear-gradient(135deg, #2980b9, #3498db); 
+            transform: translateY(-3px);
+            box-shadow: 0 5px 8px rgba(0,0,0,0.3);
+        }
+        .ship-item.selected { 
+            background: linear-gradient(135deg, #e74c3c, #c0392b); 
+            transform: scale(1.05);
+        }
+        .ship-item.placed { 
+            background: linear-gradient(135deg, #27ae60, #2ecc71); 
+        }
+        
+        /* Информация об игроке */
+        .player-info { 
+            background: #2c3e50; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 20px;
+            border: 2px solid #3498db;
+        }
+        .player-info h3 { 
+            color: #3498db; 
+            margin-bottom: 10px;
+        }
+        #playerId { 
+            font-family: monospace; 
+            background: #34495e; 
+            padding: 8px; 
+            border-radius: 4px; 
+            margin-top: 10px;
+            word-break: break-all;
+            font-size: 12px;
+            color: #ecf0f1;
+        }
+        
+        /* Вспомогательные классы */
+        .hidden { display: none !important; }
+        .visible { display: block; }
+        
+        /* Лобби */
+        #lobbyView { 
+            text-align: center; 
+            padding: 50px;
+        }
+        #lobbyView h2 { 
+            color: #2c3e50; 
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        #lobbyView p { 
+            color: #7f8c8d; 
+            font-size: 16px;
+        }
+        
+        /* Сообщения чата */
+        .message { 
+            margin-bottom: 10px; 
+            padding: 8px 12px; 
+            border-radius: 5px; 
+            background: white; 
+            border-left: 4px solid #3498db;
+        }
+        .message.system { 
+            background: #f8f9fa; 
+            border-left-color: #95a5a6; 
+            font-style: italic;
+        }
+        .message.player { 
+            border-left-color: #2ecc71;
+        }
+        .message.opponent { 
+            border-left-color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚓ Морской Бой</h1>
+            <p>Классическая игра для двух игроков</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Левая панель - комнаты -->
+            <div class="sidebar">
+                <div class="rooms-list">
+                    <h3>🏠 Комнаты для игры</h3>
+                    <div id="roomsContainer">
+                        <div class="room-item available">
+                            <div>Загрузка комнат...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="player-info">
+                    <h3>👤 Ваш статус</h3>
+                    <div id="playerStatus" class="status waiting">Ожидание подключения...</div>
+                    <div id="playerId" style="display:none;">ID: <span id="currentPlayerId"></span></div>
+                </div>
+                
+                <div class="controls">
+                    <button id="leaveRoomBtn" class="hidden">🚪 Покинуть комнату</button>
+                    <button id="refreshRoomsBtn">🔄 Обновить комнаты</button>
+                </div>
+            </div>
+            
+            <!-- Основная игровая область -->
+            <div class="game-area">
+                <!-- Экран лобби -->
+                <div id="lobbyView">
+                    <h2>Добро пожаловать в Морской Бой!</h2>
+                    <p>Выберите комнату для начала игры. Всего доступно 5 комнат.</p>
+                    <p>Когда в комнате будут 2 игрока, начнется расстановка кораблей.</p>
+                    <div style="margin-top: 30px; color: #7f8c8d;">
+                        <p>🎮 <strong>Как играть:</strong></p>
+                        <p>1. Выберите свободную комнату</p>
+                        <p>2. Расставьте свои корабли на поле</p>
+                        <p>3. По очереди стреляйте по полю противника</p>
+                        <p>4. Первый, кто потопит все корабли противника, побеждает!</p>
+                    </div>
+                </div>
+                
+                <!-- Экран игры (скрыт по умолчанию) -->
+                <div id="gameView" class="hidden">
+                    <!-- Фаза расстановки кораблей -->
+                    <div id="placementPhase" class="ship-placing hidden">
+                        <h3>⚓ Расставьте ваши корабли</h3>
+                        <p style="text-align: center; margin-bottom: 15px; color: #d35400;">
+                            Кликните на корабль ниже, затем кликните на свое поле чтобы разместить его
+                        </p>
+                        
+                        <div class="ship-list" id="shipList">
+                            <div class="ship-item" data-size="4">4-палубный (1)</div>
+                            <div class="ship-item" data-size="3">3-палубный (2)</div>
+                            <div class="ship-item" data-size="2">2-палубный (3)</div>
+                            <div class="ship-item" data-size="1">1-палубный (4)</div>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 15px 0;">
+                            <button id="rotateBtn" class="orientation-btn">🔄 Повернуть: Горизонтально</button>
+                            <button id="randomPlaceBtn">🎲 Авторасстановка</button>
+                            <button id="clearShipsBtn">🗑️ Очистить поле</button>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <button id="placeShipsBtn" style="padding: 15px 30px; font-size: 16px;">
+                                ✅ Подтвердить расстановку
+                            </button>
+                        </div>
+                        
+                        <p id="placementStatus" style="text-align: center; margin-top: 15px; color: #27ae60;">
+                            Осталось расставить: 10 кораблей
+                        </p>
+                    </div>
+                    
+                    <!-- Игровые поля -->
+                    <div class="boards-container">
+                        <!-- Поле игрока -->
+                        <div class="board-section">
+                            <div class="board-title">🎯 Ваше поле</div>
+                            <div class="board" id="playerBoard"></div>
+                            <div style="text-align: center; margin-top: 10px; color: #2c3e50;">
+                                <div>Ваши корабли: <span id="playerShipsCount">0/10</span></div>
+                                <div>Попадания по вам: <span id="playerHitsCount">0</span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Поле противника -->
+                        <div class="board-section">
+                            <div class="board-title">🎯 Поле противника</div>
+                            <div class="board" id="opponentBoard"></div>
+                            <div style="text-align: center; margin-top: 10px; color: #2c3e50;">
+                                <div>Ваши попадания: <span id="opponentHitsCount">0</span></div>
+                                <div>Потоплено: <span id="sunkShipsCount">0/10</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Чат -->
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message system">Добро пожаловать в игру! Сообщения будут отображаться здесь.</div>
+                        </div>
+                        <div class="chat-input">
+                            <input type="text" id="chatInput" placeholder="Введите сообщение... (Enter для отправки)" maxlength="200">
+                            <button id="sendMessageBtn">📤 Отправить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class BattleshipGame {
+            constructor() {
+                this.ws = null;
+                this.playerId = null;
+                this.playerName = null;
+                this.roomId = null;
+                this.gameState = 'lobby'; // 'lobby', 'placement', 'battle', 'gameover'
+                this.currentShip = null;
+                this.shipOrientation = 'horizontal';
+                this.playerShips = [];
+                this.placedShips = [];
+                this.isMyTurn = false;
+                this.opponentId = null;
+                this.playerBoard = Array(10).fill().map(() => Array(10).fill(0));
+                this.opponentBoard = Array(10).fill().map(() => Array(10).fill(0));
+                this.shots = [];
+                this.hits = 0;
+                this.misses = 0;
+                this.shipsToPlace = [
+                    { size: 4, count: 1, placed: 0 },
+                    { size: 3, count: 2, placed: 0 },
+                    { size: 2, count: 3, placed: 0 },
+                    { size: 1, count: 4, placed: 0 }
+                ];
+                
+                this.initializeWebSocket();
+                this.initializeEventListeners();
+                this.renderBoards();
+                this.updateShipsToPlace();
+            }
+            
+            initializeWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}`;
+                this.ws = new WebSocket(wsUrl);
+                
+                this.ws.onopen = () => {
+                    console.log('✅ Подключено к серверу');
+                    this.addSystemMessage('Подключено к серверу');
+                    this.playerName = `Игрок_${Math.floor(Math.random() * 10000)}`;
+                    document.getElementById('playerStatus').textContent = `Имя: ${this.playerName}`;
+                    document.getElementById('playerStatus').className = 'status waiting';
+                };
+                
+                this.ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        console.log('📨 Получено сообщение:', message.type, message);
+                        this.handleMessage(message);
+                    } catch (error) {
+                        console.error('❌ Ошибка парсинга сообщения:', error);
+                    }
+                };
+                
+                this.ws.onclose = () => {
+                    console.log('🔌 Соединение закрыто');
+                    this.addSystemMessage('Соединение с сервером потеряно. Переподключение...');
+                    document.getElementById('playerStatus').textContent = 'Переподключение...';
+                    document.getElementById('playerStatus').className = 'status waiting';
+                    setTimeout(() => this.initializeWebSocket(), 3000);
+                };
+                
+                this.ws.onerror = (error) => {
+                    console.error('❌ WebSocket ошибка:', error);
+                    this.addSystemMessage('Ошибка соединения');
+                };
+            }
+            
+            initializeEventListeners() {
+                // Кнопки
+                document.getElementById('leaveRoomBtn').addEventListener('click', () => this.leaveRoom());
+                document.getElementById('refreshRoomsBtn').addEventListener('click', () => this.getRooms());
+                document.getElementById('sendMessageBtn').addEventListener('click', () => this.sendChatMessage());
+                document.getElementById('chatInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendChatMessage();
+                });
+                
+                // Корабли
+                document.getElementById('rotateBtn').addEventListener('click', () => this.toggleShipOrientation());
+                document.getElementById('randomPlaceBtn').addEventListener('click', () => this.randomPlaceShips());
+                document.getElementById('clearShipsBtn').addEventListener('click', () => this.clearShips());
+                document.getElementById('placeShipsBtn').addEventListener('click', () => this.confirmShipPlacement());
+                
+                // Список кораблей
+                document.getElementById('shipList').addEventListener('click', (e) => {
+                    if (e.target.classList.contains('ship-item')) {
+                        const size = parseInt(e.target.dataset.size);
+                        this.selectShip(size);
+                    }
+                });
+                
+                // Клики по доскам
+                document.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('cell') && !e.target.classList.contains('coordinates')) {
+                        const x = parseInt(e.target.dataset.x);
+                        const y = parseInt(e.target.dataset.y);
+                        const boardId = e.target.closest('.board').id;
+                        
+                        if (boardId === 'playerBoard' && this.gameState === 'placement') {
+                            this.placeShipOnBoard(x, y);
+                        } else if (boardId === 'opponentBoard' && this.gameState === 'battle' && this.isMyTurn) {
+                            this.shoot(x, y);
+                        }
+                    }
+                });
+            }
+            
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'rooms_list':
+                        this.updateRoomsList(message.rooms);
+                        break;
+                    case 'room_joined':
+                        this.handleRoomJoined(message);
+                        break;
+                    case 'room_update':
+                        this.updateRoomStatus(message);
+                        break;
+                    case 'player_left':
+                        this.handlePlayerLeft(message);
+                        break;
+                    case 'left_room':
+                        this.handleLeftRoom();
+                        break;
+                    case 'placement_start':
+                        this.startPlacementPhase(message);
+                        break;
+                    case 'ships_placed_update':
+                        this.updateShipsPlaced(message);
+                        break;
+                    case 'ships_placed':
+                        this.handleShipsPlaced(message);
+                        break;
+                    case 'placement_error':
+                        this.showError(message.message);
+                        break;
+                    case 'game_start':
+                        this.startGame(message);
+                        break;
+                    case 'turn_change':
+                        this.changeTurn(message);
+                        break;
+                    case 'shot_result':
+                        this.handleShotResult(message);
+                        break;
+                    case 'game_over':
+                        this.gameOver(message);
+                        break;
+                    case 'chat_message':
+                        this.displayChatMessage(message);
+                        break;
+                    case 'error':
+                        this.showError(message.message);
+                        break;
+                }
+            }
+            
+            updateRoomsList(rooms) {
+                const container = document.getElementById('roomsContainer');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                
+                if (!rooms || rooms.length === 0) {
+                    container.innerHTML = '<div class="room-item"><div>Нет доступных комнат</div></div>';
+                    return;
+                }
+                
+                rooms.forEach(room => {
+                    const roomElement = document.createElement('div');
+                    roomElement.className = 'room-item';
+                    
+                    let statusText = '';
+                    if (room.gameStarted) {
+                        roomElement.classList.add('started');
+                        statusText = 'В игре';
+                    } else if (room.playersCount >= 2) {
+                        roomElement.classList.add('full');
+                        statusText = 'Полная';
+                    } else {
+                        roomElement.classList.add('available');
+                        statusText = 'Свободно';
+                    }
+                    
+                    roomElement.innerHTML = `
+                        <div><strong>Комната ${room.id}</strong></div>
+                        <div class="room-info">
+                            <span>👥 ${room.playersCount}/2</span>
+                            <span>${statusText}</span>
+                        </div>
+                    `;
+                    
+                    if (room.playersCount < 2 && !room.gameStarted) {
+                        roomElement.addEventListener('click', () => this.joinRoom(room.id));
+                    }
+                    
+                    container.appendChild(roomElement);
+                });
+            }
+            
+            joinRoom(roomId) {
+                console.log('Попытка входа в комнату:', roomId);
+                this.sendMessage({ 
+                    type: 'join_room', 
+                    roomId: roomId 
+                });
+            }
+            
+            handleRoomJoined(message) {
+                this.playerId = message.playerId;
+                this.roomId = message.roomId;
+                
+                document.getElementById('currentPlayerId').textContent = this.playerId;
+                document.getElementById('playerId').style.display = 'block';
+                
+                document.getElementById('playerStatus').textContent = `В комнате ${this.roomId}`;
+                document.getElementById('playerStatus').className = 'status waiting';
+                
+                this.showGameView();
+                this.addSystemMessage(`Вы присоединились к комнате ${this.roomId}`);
+                
+                this.getRooms();
+            }
+            
+            updateRoomStatus(message) {
+                const statusElement = document.getElementById('playerStatus');
+                const playersCount = message.playersCount || (message.players ? message.players.length : 0);
+                
+                statusElement.textContent = `В комнате: ${playersCount}/2 игроков`;
+                statusElement.className = playersCount === 2 ? 'status ready' : 'status waiting';
+                
+                if (message.players) {
+                    const otherPlayer = message.players.find(p => p.id !== this.playerId);
+                    this.opponentId = otherPlayer ? otherPlayer.id : null;
+                    
+                    if (otherPlayer) {
+                        this.addSystemMessage(`В комнате: ${otherPlayer.name || 'Игрок'}`);
+                    }
+                }
+            }
+            
+            startPlacementPhase(message) {
+                this.gameState = 'placement';
+                document.getElementById('placementPhase').classList.remove('hidden');
+                document.getElementById('playerStatus').textContent = 'Расставьте корабли';
+                document.getElementById('playerStatus').className = 'status ready';
+                
+                this.addSystemMessage('Начинаем расстановку кораблей!');
+                this.clearShips(); // Сбрасываем любые ранее расставленные корабли
+                this.renderBoards();
+            }
+            
+            updateShipsPlaced(message) {
+                document.getElementById('playerStatus').textContent = 
+                    `Расставлено кораблей: ${message.shipsPlaced}/2 игроков`;
+                    
+                if (message.playerId !== this.playerId) {
+                    this.addSystemMessage('Противник расставил корабли');
+                }
+            }
+            
+            handleShipsPlaced(message) {
+                this.placedShips = message.ships || [];
+                this.addSystemMessage('Вы расставили все корабли! Ожидайте противника...');
+                document.getElementById('placeShipsBtn').disabled = true;
+                document.getElementById('placeShipsBtn').textContent = '✅ Корабли расставлены';
+                
+                this.updatePlayerBoard();
+            }
+            
+            startGame(message) {
+                this.gameState = 'battle';
+                document.getElementById('placementPhase').classList.add('hidden');
+                this.isMyTurn = message.currentPlayer === this.playerId;
+                
+                this.addSystemMessage('🎮 Игра началась!');
+                this.updateTurnDisplay();
+                this.renderBoards();
+            }
+            
+            changeTurn(message) {
+                this.isMyTurn = message.currentPlayer === this.playerId;
+                this.updateTurnDisplay();
+                
+                if (this.isMyTurn) {
+                    this.addSystemMessage('🎯 Ваш ход!');
+                } else {
+                    this.addSystemMessage('⏳ Ход противника...');
+                }
+            }
+            
+            handleShotResult(message) {
+                const x = message.x;
+                const y = message.y;
+                
+                if (message.playerId === this.playerId) {
+                    // Это наш выстрел по противнику
+                    if (message.hit) {
+                        this.opponentBoard[y][x] = 2; // Попадание
+                        this.hits++;
+                        this.addSystemMessage(`🎯 Вы попали в (${x},${y})!`);
+                        
+                        if (message.shipSunk) {
+                            this.addSystemMessage('💥 Вы потопили корабль противника!');
+                        }
+                    } else {
+                        this.opponentBoard[y][x] = 3; // Промах
+                        this.misses++;
+                        this.addSystemMessage(`💧 Вы промахнулись в (${x},${y})`);
+                    }
+                } else {
+                    // Это выстрел противника по нам
+                    if (message.hit) {
+                        this.playerBoard[y][x] = 2; // Попадание по нам
+                        this.addSystemMessage(`💥 Противник попал в (${x},${y})`);
+                        
+                        if (message.shipSunk) {
+                            this.addSystemMessage('😢 Противник потопил ваш корабль!');
+                        }
+                    } else {
+                        this.playerBoard[y][x] = 3; // Промах противника
+                        this.addSystemMessage(`🎉 Противник промахнулся в (${x},${y})`);
+                    }
+                }
+                
+                this.updateCounters();
+                this.renderBoards();
+            }
+            
+            gameOver(message) {
+                this.gameState = 'gameover';
+                
+                if (message.winner === this.playerId) {
+                    this.addSystemMessage('🎉 🎉 🎉 ПОБЕДА! Вы выиграли! 🎉 🎉 🎉');
+                    document.getElementById('playerStatus').textContent = 'ПОБЕДА!';
+                    document.getElementById('playerStatus').className = 'status your-turn';
+                } else {
+                    this.addSystemMessage('😢 Вы проиграли. Попробуйте еще раз!');
+                    document.getElementById('playerStatus').textContent = 'ПОРАЖЕНИЕ';
+                    document.getElementById('playerStatus').className = 'status opponent-turn';
+                }
+                
+                setTimeout(() => {
+                    this.leaveRoom();
+                }, 5000);
+            }
+            
+            handlePlayerLeft(message) {
+                this.addSystemMessage('Противник покинул комнату');
+                if (this.gameState !== 'lobby') {
+                    this.addSystemMessage('Возвращаемся в лобби через 3 секунды...');
+                    setTimeout(() => this.leaveRoom(), 3000);
+                }
+            }
+            
+            handleLeftRoom() {
+                this.showLobby();
+                this.addSystemMessage('Вы покинули комнату');
+                this.getRooms();
+            }
+            
+            // Функции для кораблей
+            selectShip(size) {
+                const shipItem = document.querySelector(`.ship-item[data-size="${size}"]`);
+                const shipType = this.shipsToPlace.find(s => s.size === size);
+                
+                if (shipType && shipType.placed >= shipType.count) {
+                    this.showError(`Все ${size}-палубные корабли уже расставлены`);
+                    return;
+                }
+                
+                this.currentShip = size;
+                document.querySelectorAll('.ship-item').forEach(item => item.classList.remove('selected'));
+                shipItem.classList.add('selected');
+                
+                this.addSystemMessage(`Выбран ${size}-палубный корабль`);
+            }
+            
+            toggleShipOrientation() {
+                this.shipOrientation = this.shipOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+                const btn = document.getElementById('rotateBtn');
+                btn.textContent = `🔄 Повернуть: ${this.shipOrientation === 'horizontal' ? 'Горизонтально' : 'Вертикально'}`;
+                
+                this.addSystemMessage(`Ориентация: ${this.shipOrientation === 'horizontal' ? 'Горизонтально' : 'Вертикально'}`);
+            }
+            
+            placeShipOnBoard(x, y) {
+                if (!this.currentShip || this.gameState !== 'placement') return;
+                
+                const shipType = this.shipsToPlace.find(s => s.size === this.currentShip);
+                if (!shipType || shipType.placed >= shipType.count) {
+                    this.showError(`Нельзя разместить больше ${this.currentShip}-палубных кораблей`);
+                    return;
+                }
+                
+                // Проверка границ
+                const canPlace = this.canPlaceShip(x, y, this.currentShip, this.shipOrientation);
+                if (!canPlace.valid) {
+                    this.showError(canPlace.message);
+                    return;
+                }
+                
+                // Размещаем корабль
+                const ship = {
+                    size: this.currentShip,
+                    x: x,
+                    y: y,
+                    isHorizontal: this.shipOrientation === 'horizontal'
+                };
+                
+                // Отмечаем клетки на доске
+                for (let i = 0; i < ship.size; i++) {
+                    const shipX = ship.isHorizontal ? ship.x + i : ship.x;
+                    const shipY = ship.isHorizontal ? ship.y : ship.y + i;
+                    this.playerBoard[shipY][shipX] = 1;
+                }
+                
+                this.playerShips.push(ship);
+                shipType.placed++;
+                
+                // Обновляем интерфейс
+                this.updateShipsToPlace();
+                this.renderPlayerBoard();
+                
+                // Снимаем выделение
+                document.querySelectorAll('.ship-item').forEach(item => item.classList.remove('selected'));
+                this.currentShip = null;
+                
+                this.addSystemMessage(`Размещен ${ship.size}-палубный корабль`);
+            }
+            
+            canPlaceShip(x, y, size, orientation) {
+                // Проверка границ
+                if (orientation === 'horizontal') {
+                    if (x + size > 10) {
+                        return { valid: false, message: 'Корабль выходит за границы поля' };
+                    }
+                } else {
+                    if (y + size > 10) {
+                        return { valid: false, message: 'Корабль выходит за границы поля' };
+                    }
+                }
+                
+                // Проверка наложения и соседних клеток
+                for (let i = 0; i < size; i++) {
+                    const checkX = orientation === 'horizontal' ? x + i : x;
+                    const checkY = orientation === 'horizontal' ? y : y + i;
+                    
+                    // Проверка самой клетки
+                    if (this.playerBoard[checkY][checkX] !== 0) {
+                        return { valid: false, message: 'Клетка уже занята' };
+                    }
+                    
+                    // Проверка соседних клеток
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            const nx = checkX + dx;
+                            const ny = checkY + dy;
+                            
+                            if (nx >= 0 && nx < 10 && ny >= 0 && ny < 10) {
+                                if (this.playerBoard[ny][nx] !== 0) {
+                                    return { valid: false, message: 'Слишком близко к другому кораблю' };
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return { valid: true, message: '' };
+            }
+            
+            randomPlaceShips() {
+                if (this.gameState !== 'placement') return;
+                
+                this.clearShips();
+                
+                const ships = [
+                    { size: 4, count: 1 },
+                    { size: 3, count: 2 },
+                    { size: 2, count: 3 },
+                    { size: 1, count: 4 }
+                ];
+                
+                let attempts = 0;
+                const maxAttempts = 1000;
+                
+                ships.forEach(shipType => {
+                    for (let i = 0; i < shipType.count; i++) {
+                        let placed = false;
+                        let attempt = 0;
+                        
+                        while (!placed && attempt < maxAttempts) {
+                            attempt++;
+                            attempts++;
+                            
+                            const x = Math.floor(Math.random() * 10);
+                            const y = Math.floor(Math.random() * 10);
+                            const isHorizontal = Math.random() > 0.5;
+                            
+                            const canPlace = this.canPlaceShip(x, y, shipType.size, isHorizontal ? 'horizontal' : 'vertical');
+                            
+                            if (canPlace.valid) {
+                                // Размещаем корабль
+                                const ship = {
+                                    size: shipType.size,
+                                    x: x,
+                                    y: y,
+                                    isHorizontal: isHorizontal
+                                };
+                                
+                                for (let j = 0; j < ship.size; j++) {
+                                    const shipX = ship.isHorizontal ? ship.x + j : ship.x;
+                                    const shipY = ship.isHorizontal ? ship.y : ship.y + j;
+                                    this.playerBoard[shipY][shipX] = 1;
+                                }
+                                
+                                this.playerShips.push(ship);
+                                placed = true;
+                            }
+                        }
+                    }
+                });
+                
+                // Обновляем счетчики
+                this.shipsToPlace.forEach(shipType => {
+                    const count = this.playerShips.filter(s => s.size === shipType.size).length;
+                    shipType.placed = count;
+                });
+                
+                this.updateShipsToPlace();
+                this.renderPlayerBoard();
+                this.addSystemMessage('Корабли расставлены автоматически');
+            }
+            
+            clearShips() {
+                this.playerShips = [];
+                this.playerBoard = Array(10).fill().map(() => Array(10).fill(0));
+                
+                this.shipsToPlace.forEach(ship => {
+                    ship.placed = 0;
+                });
+                
+                this.updateShipsToPlace();
+                this.renderPlayerBoard();
+                document.getElementById('placeShipsBtn').disabled = false;
+                document.getElementById('placeShipsBtn').textContent = '✅ Подтвердить расстановку';
+                
+                this.addSystemMessage('Поле очищено');
+            }
+            
+            confirmShipPlacement() {
+                if (this.gameState !== 'placement') return;
+                
+                // Проверяем, что все корабли расставлены
+                let allShipsPlaced = true;
+                for (const shipType of this.shipsToPlace) {
+                    if (shipType.placed < shipType.count) {
+                        allShipsPlaced = false;
+                        this.showError(`Не расставлены все ${shipType.size}-палубные корабли`);
+                        break;
+                    }
+                }
+                
+                if (!allShipsPlaced) return;
+                
+                // Отправляем корабли на сервер
+                this.sendMessage({ 
+                    type: 'place_ships', 
+                    ships: this.playerShips 
+                });
+                
+                this.placedShips = [...this.playerShips];
+            }
+            
+            shoot(x, y) {
+                if (this.gameState !== 'battle' || !this.isMyTurn) return;
+                
+                // Проверяем, не стреляли ли уже сюда
+                if (this.opponentBoard[y][x] !== 0) {
+                    this.showError('Сюда уже стреляли');
+                    return;
+                }
+                
+                this.sendMessage({ 
+                    type: 'shoot', 
+                    x: x, 
+                    y: y 
+                });
+            }
+            
+            // Отрисовка
+            renderBoards() {
+                this.renderPlayerBoard();
+                this.renderOpponentBoard();
+            }
+            
+            renderPlayerBoard() {
+                const board = document.getElementById('playerBoard');
+                if (!board) return;
+                
+                board.innerHTML = '';
+                
+                // Добавляем буквы (A-J) и цифры (1-10)
+                for (let y = 0; y < 10; y++) {
+                    for (let x = 0; x < 10; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.x = x;
+                        cell.dataset.y = y;
+                        
+                        // Добавляем координаты для первой строки и первого столбца
+                        if (y === 0) {
+                            const coord = document.createElement('div');
+                            coord.className = 'cell coordinates';
+                            coord.textContent = String.fromCharCode(65 + x); // A-J
+                            board.appendChild(coord);
+                        }
+                        
+                        if (x === 0 && y > 0) {
+                            const coord = document.createElement('div');
+                            coord.className = 'cell coordinates';
+                            coord.textContent = y;
+                            board.appendChild(coord);
+                        }
+                        
+                        if (y === 0 || x === 0) continue;
+                        
+                        const actualX = x - 1;
+                        const actualY = y - 1;
+                        
+                        const cellValue = this.playerBoard[actualY][actualX];
+                        
+                        if (cellValue === 1) {
+                            cell.classList.add('ship');
+                            if (this.placedShips.length > 0) {
+                                cell.classList.add('placed');
+                            }
+                        } else if (cellValue === 2) {
+                            cell.classList.add('hit');
+                        } else if (cellValue === 3) {
+                            cell.classList.add('miss');
+                        }
+                        
+                        board.appendChild(cell);
+                    }
+                }
+            }
+            
+            renderOpponentBoard() {
+                const board = document.getElementById('opponentBoard');
+                if (!board) return;
+                
+                board.innerHTML = '';
+                
+                // Добавляем буквы (A-J) и цифры (1-10)
+                for (let y = 0; y < 10; y++) {
+                    for (let x = 0; x < 10; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.x = x;
+                        cell.dataset.y = y;
+                        
+                        // Добавляем координаты для первой строки и первого столбца
+                        if (y === 0) {
+                            const coord = document.createElement('div');
+                            coord.className = 'cell coordinates';
+                            coord.textContent = String.fromCharCode(65 + x); // A-J
+                            board.appendChild(coord);
+                        }
+                        
+                        if (x === 0 && y > 0) {
+                            const coord = document.createElement('div');
+                            coord.className = 'cell coordinates';
+                            coord.textContent = y;
+                            board.appendChild(coord);
+                        }
+                        
+                        if (y === 0 || x === 0) continue;
+                        
+                        const actualX = x - 1;
+                        const actualY = y - 1;
+                        
+                        const cellValue = this.opponentBoard[actualY][actualX];
+                        
+                        if (cellValue === 2) {
+                            cell.classList.add('hit');
+                        } else if (cellValue === 3) {
+                            cell.classList.add('miss');
+                        }
+                        
+                        board.appendChild(cell);
+                    }
+                }
+            }
+            
+            updatePlayerBoard() {
+                this.renderPlayerBoard();
+            }
+            
+            updateCounters() {
+                // Корабли игрока
+                const playerShipsCount = this.playerShips.length;
+                const playerHits = this.playerBoard.flat().filter(cell => cell === 2).length;
+                document.getElementById('playerShipsCount').textContent = `${playerShipsCount}/10`;
+                document.getElementById('playerHitsCount').textContent = playerHits;
+                
+                // Попадания по противнику
+                const opponentHits = this.opponentBoard.flat().filter(cell => cell === 2).length;
+                const sunkShips = this.playerShips.length - playerShipsCount;
+                document.getElementById('opponentHitsCount').textContent = opponentHits;
+                document.getElementById('sunkShipsCount').textContent = `${sunkShips}/10`;
+            }
+            
+            updateShipsToPlace() {
+                let totalToPlace = 0;
+                let totalPlaced = 0;
+                
+                this.shipsToPlace.forEach(ship => {
+                    totalToPlace += ship.count;
+                    totalPlaced += ship.placed;
+                });
+                
+                const status = document.getElementById('placementStatus');
+                if (status) {
+                    status.textContent = `Осталось расставить: ${totalToPlace - totalPlaced} кораблей`;
+                    status.style.color = totalPlaced === totalToPlace ? '#27ae60' : '#e74c3c';
+                }
+                
+                // Обновляем кнопки кораблей
+                document.querySelectorAll('.ship-item').forEach(item => {
+                    const size = parseInt(item.dataset.size);
+                    const shipType = this.shipsToPlace.find(s => s.size === size);
+                    
+                    if (shipType) {
+                        const remaining = shipType.count - shipType.placed;
+                        item.textContent = `${size}-палубный (${remaining} осталось)`;
+                        
+                        if (shipType.placed >= shipType.count) {
+                            item.classList.add('placed');
+                            item.classList.remove('selected');
+                        } else {
+                            item.classList.remove('placed');
+                        }
+                    }
+                });
+                
+                // Активируем кнопку подтверждения если все корабли расставлены
+                const placeBtn = document.getElementById('placeShipsBtn');
+                if (placeBtn) {
+                    placeBtn.disabled = totalPlaced !== totalToPlace;
+                }
+            }
+            
+            updateTurnDisplay() {
+                const statusElement = document.getElementById('playerStatus');
+                if (!statusElement) return;
+                
+                if (this.isMyTurn) {
+                    statusElement.textContent = '🎯 Ваш ход!';
+                    statusElement.className = 'status your-turn';
+                } else {
+                    statusElement.textContent = '⏳ Ход противника';
+                    statusElement.className = 'status opponent-turn';
+                }
+            }
+            
+            // Чат
+            sendChatMessage() {
+                const input = document.getElementById('chatInput');
+                const text = input.value.trim();
+                
+                if (text && this.ws.readyState === WebSocket.OPEN) {
+                    this.sendMessage({ 
+                        type: 'chat_message', 
+                        text: text 
+                    });
+                    input.value = '';
+                }
+            }
+            
+            displayChatMessage(message) {
+                const chatMessages = document.getElementById('chatMessages');
+                if (!chatMessages) return;
+                
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${message.playerId === this.playerId ? 'player' : 'opponent'}`;
+                
+                const time = message.timestamp || new Date().toLocaleTimeString();
+                const name = message.playerId === this.playerId ? 'Вы' : (message.playerName || 'Противник');
+                
+                messageElement.innerHTML = `
+                    <div style="font-weight: bold; color: ${message.playerId === this.playerId ? '#27ae60' : '#e74c3c'}">
+                        ${name} (${time}):
+                    </div>
+                    <div>${message.text}</div>
+                `;
+                
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            addSystemMessage(text) {
+                const chatMessages = document.getElementById('chatMessages');
+                if (!chatMessages) return;
+                
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message system';
+                messageElement.textContent = `[Система] ${text}`;
+                
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // Навигация
+            showLobby() {
+                this.gameState = 'lobby';
+                this.playerId = null;
+                this.roomId = null;
+                this.currentShip = null;
+                this.playerShips = [];
+                this.placedShips = [];
+                this.playerBoard = Array(10).fill().map(() => Array(10).fill(0));
+                this.opponentBoard = Array(10).fill().map(() => Array(10).fill(0));
+                
+                document.getElementById('lobbyView').classList.remove('hidden');
+                document.getElementById('gameView').classList.add('hidden');
+                document.getElementById('leaveRoomBtn').classList.add('hidden');
+                document.getElementById('placementPhase').classList.add('hidden');
+                document.getElementById('playerId').style.display = 'none';
+                
+                document.getElementById('playerStatus').textContent = 'Выберите комнату';
+                document.getElementById('playerStatus').className = 'status waiting';
+                
+                this.clearShips();
+                this.renderBoards();
+            }
+            
+            showGameView() {
+                document.getElementById('lobbyView').classList.add('hidden');
+                document.getElementById('gameView').classList.remove('hidden');
+                document.getElementById('leaveRoomBtn').classList.remove('hidden');
+            }
+            
+            leaveRoom() {
+                this.sendMessage({ type: 'leave_room' });
+            }
+            
+            getRooms() {
+                this.sendMessage({ type: 'get_rooms' });
+            }
+            
+            // Вспомогательные функции
+            sendMessage(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                } else {
+                    console.error('WebSocket не подключен');
+                    this.addSystemMessage('Нет подключения к серверу');
+                }
+            }
+            
+            showError(message) {
+                console.error('Ошибка:', message);
+                this.addSystemMessage(`❌ ${message}`);
+                alert(`Ошибка: ${message}`);
+            }
+        }
+        
+        // Инициализация игры при загрузке страницы
+        window.addEventListener('load', () => {
+            const game = new BattleshipGame();
+            window.battleshipGame = game; // Для отладки в консоли
+        });
+    </script>
+</body>
+</html>
